@@ -17,10 +17,10 @@
 # This script prints interface throughput/packet rate statistics in an
 # easy to read list format on NX-OS platforms.  To use:
 #
-# 		1. Copy script to NX-OS switch bootflash:
-# 		2. Execute using:
+#               1. Copy script to NX-OS switch bootflash:
+#               2. Execute using:
 # source interface_rate.py
-# 			   				- or -
+#                                                       - or -
 # python bootflash:interface_rate.py
 #
 
@@ -32,25 +32,23 @@ except ImportError:
 import sys
 import xml.etree.cElementTree as ET
 
-# Workaround for cli command inconsistency -- if cli takes one argument,
-# make it take two, with the second being a dummy, returned as an array
 
+# Handle cli() type inconsistencies
+def make_cli_wrapper(f):
+    if type(f("show clock")) is tuple:
+        def cli_wrapper(*args, **kwargs):
+            return f(*args, **kwargs)[1]
+        return cli_wrapper
+    return f
 
-def cli_decorator(target_function):
-    def wrapper(cmd, dummyBool):
-        return [None, target_function(cmd)]
-    return wrapper
-import inspect
-if len(inspect.getargspec(cli)) == 4:
-    cli = cli_decorator(cli)
-
+cli = make_cli_wrapper(cli)
 
 # Get interface information in XML format
 print
 print 'Collecting and processing interface statistics ...'
 print
 sys.stdout.flush()
-raw = cli('show interface | xml | exclude "]]>]]>"', False)[1]
+raw = cli('show interface | xml | exclude "]]>]]>"')
 
 # Load and parse XML
 tree = ET.ElementTree(ET.fromstring(raw))
@@ -80,3 +78,4 @@ for i in data.iter(if_manager + 'ROW_interface'):
         sys.stdout.flush()
     except AttributeError:
         pass
+
